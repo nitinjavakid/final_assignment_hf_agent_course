@@ -4,14 +4,19 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 import os
+import json
 
 def get_prompt(prompt_name):
-    try:
-        mlflow.genai.load_prompt(f"prompts:/{prompt_name}@latest")
-    except:
-        with open(f"prompts/{prompt_name}.yaml") as f:
-            new_prompt = list(yaml.safe_load(f))
-            mlflow.genai.register_prompt(prompt_name, new_prompt)
+    with open(f"prompts/{prompt_name}.yaml") as f:
+        new_prompt = yaml.safe_load(f)
+        original_prompt = None
+        try:
+            original_prompt = mlflow.genai.load_prompt(f"prompts:/{prompt_name}@latest")
+        except:
+            pass
+
+        if json.dumps(original_prompt.template) != json.dumps(new_prompt):
+            mlflow.genai.register_prompt(prompt_name, new_prompt)    
 
     return mlflow.genai.load_prompt(f"prompts:/{prompt_name}@latest")
 
@@ -28,4 +33,4 @@ def process_question(question):
         "messages": prompt.format(question=question)
     })
 
-    return result['messages'][-1].content
+    return result['messages'][-1].content.split("FINAL ANSWER: ")[1].strip()
