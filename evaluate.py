@@ -3,15 +3,13 @@ import dotenv
 dotenv.load_dotenv()
 
 import mlflow
-from mlflow.genai.scorers import Equivalence
 from agent import process_question
 import pandas as pd
 import os
+import nest_asyncio
 
 mlflow.set_tracking_uri(os.environ["MLFLOW_ENDPOINT"])
 mlflow.set_experiment(os.environ["MLFLOW_EXPERIMENT"])
-
-mlflow.langchain.autolog()
 
 def get_dataset():
     dataset_name = os.environ["MLFLOW_DATASET_NAME"]
@@ -42,7 +40,8 @@ def get_dataset():
 def exact_match(outputs: dict, expectations: dict) -> bool:
     return outputs == expectations["expected_response"]
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
+    nest_asyncio.apply()
     mlflow.genai.evaluate(
         data=get_dataset(),
         predict_fn=process_question,
