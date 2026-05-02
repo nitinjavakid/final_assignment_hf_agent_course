@@ -20,20 +20,20 @@ def get_prompt(prompt_name):
         except:
             pass
 
-        if json.dumps(original_prompt.template) != json.dumps(new_prompt):
+        if original_prompt is None or json.dumps(original_prompt.template) != json.dumps(new_prompt):
             mlflow.genai.register_prompt(prompt_name, new_prompt)    
 
     return mlflow.genai.load_prompt(f"prompts:/{prompt_name}@latest")
 
 class Agent(AsyncContextDecorator):
     async def __aenter__(self):
-        model = ChatOpenAI(base_url=os.environ["OPENAI_API_BASE"],
+        model = ChatOpenAI(base_url=os.environ["OPENAI_BASE_URL"],
                        api_key=os.environ["OPENAI_API_KEY"],
-                       model="qwen/qwen3-4b-2507")
+                       model=os.environ["OPENAI_MODEL"])
         self.__browser = create_async_playwright_browser(headless=False)
-        tools = [DuckDuckGoSearchResults(), *PlayWrightBrowserToolkit.from_browser(async_browser=self.__browser).get_tools()]
+        #tools = [DuckDuckGoSearchResults() ]
         self.__prompt = get_prompt("initial_prompt")
-        self.__agent = create_agent(model=model, tools=tools)
+        self.__agent = create_agent(model=model, tools=None)
         return self
     
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -44,9 +44,9 @@ class Agent(AsyncContextDecorator):
     async def ainvoke(self, question: str):
         result = await self.__agent.ainvoke({
             "messages": self.__prompt.format(question=question)
-        })
+        },config={"recursion_limit": 5})
 
-        return result['messages'][-1].content.split("FINAL ANSWER: ")[1].strip()
+        return result['messages'][-1].content.strip()
 
 @mlflow.trace
 async def process_question(question):
