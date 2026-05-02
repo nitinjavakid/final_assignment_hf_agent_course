@@ -42,10 +42,11 @@ def exact_match(outputs: dict, expectations: dict) -> bool:
 
 if __name__ == "__main__":
     nest_asyncio.apply()
-    mlflow.genai.evaluate(
-        data=get_dataset(),
-        predict_fn=process_question,
-        scorers=[
-            exact_match
-        ]
-    )
+    with mlflow.genai.enable_git_model_versioning() as context:
+        mlflow.genai.evaluate(
+            data=get_dataset(),
+            predict_fn=process_question,
+            scorers=[
+                exact_match
+            ]
+        )
