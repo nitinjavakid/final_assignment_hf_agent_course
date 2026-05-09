@@ -6,7 +6,10 @@ import mlflow
 from agent import process_question
 import pandas as pd
 import os
+import asyncio
 import nest_asyncio
+
+nest_asyncio.apply()
 
 mlflow.set_tracking_uri(os.environ["MLFLOW_ENDPOINT"])
 mlflow.set_experiment(os.environ["MLFLOW_EXPERIMENT"])
@@ -40,12 +43,15 @@ def get_dataset():
 def exact_match(outputs: dict, expectations: dict) -> bool:
     return outputs == expectations["expected_response"]
 
+def async_predict_fn(question):
+    """Wrapper to run async process_question in the event loop"""
+    return asyncio.run(process_question(question))
+
 if __name__ == "__main__":
-    nest_asyncio.apply()
     with mlflow.genai.enable_git_model_versioning() as context:
         mlflow.genai.evaluate(
             data=get_dataset(),
-            predict_fn=process_question,
+            predict_fn=async_predict_fn,
             scorers=[
                 exact_match
             ]
